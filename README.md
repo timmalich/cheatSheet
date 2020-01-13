@@ -1,6 +1,6 @@
 # cheatSheet
 
-##SUSE
+## SUSE
 ```
 ﻿ ____  _   _ ____  _____ 
 / ___|| | | / ___|| ____|
@@ -107,7 +107,7 @@ db.user.update(
 ```
 
 
-##helm
+## helm
 ```
  _          _           
 | |__   ___| |_ __ ___  
@@ -142,7 +142,7 @@ kubectl --namespace mobile get deploy tiller-deploy -o yaml | grep gemsadm
 helm install --tiller-namespace=mobile --set image.tag=0.0.1 -f gems-mobile-ui/values.yaml -n mobile-prod ./gems-mobile-ui/
 ```
 
-##kubernetes
+## kubernetes
 ```
  _          _                          _            
 | | ___   _| |__   ___ _ __ _ __   ___| |_ ___  ___ 
@@ -288,7 +288,7 @@ $$ |  $$ |$$ |  $$ |$$ |
 $$db2
 ```
 
-###examples
+### examples
 ```
 # login to docker db2admin user
 docker exec -u db2admin -it gems-db2 bash
@@ -369,7 +369,7 @@ WHERE BSCHEMA = 'THESCHEMA'
 $$tools
 ```
 
-###vim
+### vim
 ```bash
 # Can't write file because of missing user rights
 :w !sudo tee %
@@ -711,7 +711,7 @@ https://apimanager.mercedes-benz.com/documentation/advanced-use-cases/deploy-kub
 OAuth ist das Protokoll unter OpenID Connect
 OAuth -> nur Authentifizierung keine Authorisierung
 
-##Linux
+## Linux
 ```
  _     _                  
 | |   (_)_ __  _   ___  __
@@ -820,7 +820,7 @@ vim /srv/jas/app/gems/HTTPServer/dev0/conf/plugin-cfg.xml
 ```
 
 
-##DevBox
+## DevBox
 ```
  ____             ____            
 |  _ \  _____   _| __ )  _____  __
