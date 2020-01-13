@@ -56,7 +56,7 @@ ssh-add -L
 # solution check that there are NO WRONG KEY FILES in .ssh. Even if you don't use it or has a crazy name 
 ```
 
-##Java / JVM
+## Java / JVM
 ```
    _                       __      __      __ _   __
   (_) __ ___   ____ _     / /     | \ \   / /  \/  |
