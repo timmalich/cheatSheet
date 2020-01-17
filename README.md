@@ -224,6 +224,61 @@ kubectl port-forward mongors-1 27001:27017 &
 kubectl port-forward mongors-1 27002:27017 &
 ```
 
+### Install Script Kustomize
+```bash
+sudo apt install curl git
+curl -L -o /tmp/latestKustomize.html https://github.com/kubernetes-sigs/kustomize/releases/latest
+latestKustomize=$(grep -o '<a href=".*linux_amd64.tar.gz"' /tmp/latestKustomize.html | cut -d \" -f2)
+curl -L -o /tmp/latest.tar.gz https://github.com${latestKustomize}
+```
+
+### secrets
+<p style='color:red'>
+<b>FIRST OF ALL! WHEN ENCODING SECRETS WITH BASE64 MAKE SURE YOU DO NOT ENCODE \n!!!!!!</b>
+</p>
+
+```bash
+# encode a something: (DO NOT FORGET THE -n)
+echo -n "password" | base64
+# decode a something: 
+echo "cGFzc3dvcmQ=" | base64 -d
+```
+
+Example secret.yaml
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: my-secret
+type: Opaque
+data:
+  mypassword: cGFzc3dvcmQ=
+```
+
+Use it in other units like this:
+```yaml
+apiVersion: apps/v1
+kind: StatefulSet**
+metadata:
+  name: myotherunit
+spec:
+  template:
+    spec:
+      containers:
+        - name: mycontainer
+          env:
+            - name: MY_PASSWORD_AS_ENV_VAR
+              valueFrom:
+                secretKeyRef:
+                  name: my-secret
+                  key: mypassword
+```
+
+Show secrets:
+```bash
+kubectl get secrets
+kubectl describe secrets my-secret
+```
 
 ## Docker
 ```bash
@@ -633,7 +688,7 @@ git push --forceIwillThinkTwiceBeforeExecutingThis
 # store creds
 git config credential.helper store
 git push http://example.com/repo.git
-33baa4f6a00ea0737863e03fc2d840f595b88396 
+ 
 ```
 
 ## Misc
@@ -785,6 +840,14 @@ sudo lsof -i -P -n | grep LISTEN
 sudo netstat -tulpn | grep LISTEN
 sudo lsof -i:22 ## see a specific port such as 22 ##
 sudo nmap -sTU -O IP-address-Here
+```
+
+### change directory to script directory
+```bash
+#!/bin/bash
+cd "$(dirname "$0")"
+# or shorter
+cd "${0%/*}"
 ```
 
 ## Mobile
