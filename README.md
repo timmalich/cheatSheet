@@ -488,6 +488,36 @@ ansible-playbook /c/dev/git-repos/gems-dev-box/ansible/gems.yml --list-tags
 
 ```
 
+### Add encrypted string
+1. Create encrypted string
+```bash
+cd /home/gemsops/ansible-gems
+read -sp "Password to encrypt:" pw; echo; ansible-vault encrypt_string "$pw" --name 'some_name_to_referenced_yml_file'
+```
+2. Provide the password and press Ctrl+D. *Make sure not to accidentally press Enter before.*
+3. Copy and paste the output (despite the annoying 'Encryption Successful') into the desired yml in the inventory. Most likely you want to add to into the group_vars.
+4. Reference the ansible var in your script by the name given in step 2.
+
+### Decrypt form ansible-vault
+1. Provide the encrypted message from '$ANSIBLE_VAULT...' until it's end as shown in this example. 
+NOTE: ansible-vault requires new lines but can't ignore other whitespaces:
+```bash
+echo '          $ANSIBLE_VAULT;1.1;AES256
+          30633532326430643138386331363335393361393761386365343532663339383033336531323064
+          3631653462333639636366323336373261343734323065640a303733343763646136626635666137
+          35356238373465306634646130363934373765343135383533623966633732653163366237346464
+          3563303535616539620a633835643031383931343337363764333336306366376437313731663036
+          64346162323762636465663863306133646162336431356338373035346565343235633832396335
+          3961666262326337343834336335356535373063313534323965' | sed -e "s/ //g" | ansible-vault decrypt; echo
+$ Decryption successful
+$ XXX_PASSWORD _MESSAGE_WAS_HERE
+```
+For convenience you may copy and past this into the command line and you will be prompted to paste the encrypted string.
+After pasting the string including newlines: press Enter type EOF and press Enter again.  
+```bash
+read -d '' encstring <<'EOF'; echo "$encstring" | sed -e "s/ //g" | ansible-vault decrypt; echo
+```  
+
 
 ## LDAP
 ```
@@ -565,7 +595,9 @@ https://gems:9043/ibm/console/secure/securelogon.do
 
 # general server config
 ${PROFILE_HOME}/config/cells/${CELL}/nodes/${NODE}/servers/${SERVER}/server.xml
+
 # Resources (URL Providers etc). Contains some plain GEMS passwords
+${PROFILE_HOME}/config/cells/${CELL}/applications/dwiw.ear/deployments/dwiw/META-INF/ibm-application-bnd.xmi
 
 # NOTE: all files may exist on different places. below are only examples
 # find / -name fileRegistery.xml -> encrypted passwords
