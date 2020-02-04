@@ -882,6 +882,36 @@ cd "$(dirname "$0")"
 cd "${0%/*}"
 ```
 
+### systemd
+```bash
+[Unit]
+Description=Monitoring Dev
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+# NOTE: on SLES you may have to enable the service when using this setting
+User=gemsops
+Group=users
+Type=simple
+# note that stdbf -oL is ONLY required to write stdout commands to journal instantly
+ExecStart=/usr/bin/stdbuf -oL /home/gemsops/ansible-gems/monitoring/simple_rest_org_alert.py \
+    --client-name "GemsOps"
+
+[Install]
+WantedBy=multi-user.target
+```
+
+follow a single service:
+```bash
+sudo journalctl -f -u alertdev.service
+```
+show last 10 entries
+```bash
+journalctl --full --all --no-pager -n 10
+```
+
+
 ## Mobile
 ```
  __  __  ___  ____ ___ _     _____ 
