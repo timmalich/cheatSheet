@@ -211,6 +211,9 @@ kubectl logs runtimeapi-6f4d9598f4-vfmp9 -c init-ds
 # watch pods
 kubectl get pods -w
 
+# get pod by label
+kubectl get pod -l app=LABEL -o jsonpath="{.items[0].metadata.name}"
+
 ```
 
 ### networking
@@ -797,6 +800,9 @@ https://apimanager.mercedes-benz.com/documentation/advanced-use-cases/deploy-kub
 
 OAuth ist das Protokoll unter OpenID Connect
 OAuth -> nur Authentifizierung keine Authorisierung
+
+Well known dev endpoint:
+https://host/.well-known/openid-configuration
 
 ## Linux
 ```
