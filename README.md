@@ -908,16 +908,20 @@ ExecStart=/usr/bin/stdbuf -oL /home/gemsops/ansible-gems/monitoring/simple_rest_
 WantedBy=multi-user.target
 ```
 
-follow a single service:
+### follow a single service:
 ```bash
 sudo journalctl -f -u alertdev.service
 ```
-show last 10 entries
+### show last 10 entries
 ```bash
 journalctl --full --all --no-pager -n 10
 ```
 
-
+### relink dns resolver for systemd-resolved
+```bash 
+# in ubuntu 18.04 sometimes network manager is doing crazy stuff w/ 127.0.0.53:53 in /etc/resolv.conf. here is how to relink it:
+sudo ln -s /run/systemd/resolve/resolv.conf /etc/resolv.conf
+```
 ## Mobile
 ```
  __  __  ___  ____ ___ _     _____ 
@@ -1083,7 +1087,7 @@ xhr = new XMLHttpRequest(); xhr.open("GET", "https://URL"); xhr.send();
 	x.setRequestHeader("Authorization", "Bearer " + idToken);
 	x.onload = function() {
 	  if (x.status != 200) { // analyze HTTP status of the response
-		console.log(x);
+		console.log(x);sudo ln -s /run/systemd/resolve/resolv.conf /etc/resolv.conf
 		console.log(x.status);
 	  } else { // show the result
 		jsonResponse = JSON.parse(x.response);
@@ -1099,4 +1103,6 @@ xhr = new XMLHttpRequest(); xhr.open("GET", "https://URL"); xhr.send();
 ```
 ### find ad group permission for user
 net user /domain tmalich
+
+
 
