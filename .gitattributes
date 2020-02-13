@@ -1,0 +1,2 @@
+#pattern  filter=crypt diff=crypt
+.bashrc filter=crypt diff=crypt
