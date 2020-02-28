@@ -214,6 +214,9 @@ kubectl get pods -w
 # get pod by label
 kubectl get pod -l app=LABEL -o jsonpath="{.items[0].metadata.name}"
 
+# grep pod by name and show it's logs
+kubectl --tail=20 -nmonitoring logs -f $(kubectl -nmonitoring get pods --no-headers -o custom-columns=":metadata.name" | grep dev-simple-api-alert)
+
 ```
 
 ### networking
@@ -589,6 +592,16 @@ docker exec -it opt/IBM/WebSphere/Profiles/base/bin/stopServer.sh base_server -u
 docker exec gems-was /opt/IBM/WebSphere/AppServer/bin/wsadmin.sh -conntype SOAP -host localhost -port 8880 -user wasadmin -password password -lang jacl -f /workspace/5100_Workspace/configuration/build/libs/configuration.ear
 ```
 
+### wsadmin jython / jacl snippets:
+```jython
+# show availbe attributes on an object
+AdminConfig.showAttribute(pgdatasource, 'connector')
+
+# fetch attribute object 
+customPropertySet = AdminConfig.showAttribute(pgdatasource, 'propertySet')
+
+```
+
 ### change datasource:
 https://gems:9043/ibm/console/secure/securelogon.do
 => Ressourcen => JDBC => Datasources => GEMS Datasource
@@ -707,6 +720,7 @@ git push origin -u new-name.
 ```
 
 ### add file to transcrypt:
+Repository https://github.com/elasticdog/transcrypt
 ```bash
 cd /c/dev/git-repos/gems-dev-box
 git add .gitattributes ansible/group_vars/credentials.yml
@@ -723,7 +737,6 @@ git push --forceIwillThinkTwiceBeforeExecutingThis
 # store creds
 git config credential.helper store
 git push http://example.com/repo.git
- 
 ```
 
 ## Misc
