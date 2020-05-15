@@ -1,0 +1,12 @@
+screen 
+split
+resize 42%
+focus down
+resize 42%
+screen 
+split
+focus down
+screen
+focus bottom
+resize 16%
+

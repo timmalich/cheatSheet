@@ -1,0 +1,11 @@
+screen ssh -t gems-dev-app0-no-portforwarding /bin/bash -ic taillogs
+split
+resize 42%
+focus down
+resize 42%
+screen ssh -t gems-dev-app1-no-portforwarding /bin/bash -ic taillogs
+split
+focus down
+screen
+focus bottom
+resize 16%
