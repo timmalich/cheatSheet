@@ -1,0 +1,144 @@
+[global_config]
+  enabled_plugins = CustomCommandsMenu, InactivityWatch, ActivityWatch, LaunchpadCodeURLHandler, APTURLHandler, Logger, LaunchpadBugURLHandler
+  geometry_hinting = True
+[keybindings]
+[layouts]
+  [[default]]
+    [[[child1]]]
+      command = ""
+      parent = window0
+      profile = default
+      type = Terminal
+    [[[window0]]]
+      parent = ""
+      type = Window
+  [[devlogs]]
+    [[[child0]]]
+      fullscreen = False
+      maximised = True
+      order = 0
+      parent = ""
+      position = 1965:387
+      size = 1875, 1025
+      title = /bin/bash
+      type = Window
+    [[[child1]]]
+      order = 0
+      parent = child0
+      position = 937
+      ratio = 0.91862745098
+      type = VPaned
+    [[[child2]]]
+      order = 0
+      parent = child1
+      position = 935
+      ratio = 0.5
+      type = HPaned
+    [[[terminalLogDevApp0]]]
+      command = ssh -t gems-dev-app0-no-portforwarding /bin/bash -ic taillogs
+      order = 0
+      parent = child2
+      profile = default
+      type = Terminal
+    [[[terminalLogDevApp1]]]
+      command = ssh -t gems-dev-app1-no-portforwarding /bin/bash -ic taillogs
+      order = 1
+      parent = child2
+      profile = default
+      type = Terminal
+    [[[terminalLogDevFree]]]
+      command = ""
+      order = 1
+      parent = child1
+      profile = default
+      type = Terminal
+      last_active_window = True
+
+  [[intlogs]]
+    [[[child0]]]
+      fullscreen = False
+      maximised = True
+      order = 0
+      parent = ""
+      position = 1965:387
+      size = 1875, 1025
+      title = /bin/bash
+      type = Window
+    [[[child1]]]
+      order = 0
+      parent = child0
+      position = 937
+      ratio = 0.91862745098
+      type = VPaned
+    [[[child2]]]
+      order = 0
+      parent = child1
+      position = 935
+      ratio = 0.5
+      type = HPaned
+    [[[terminalLogIntApp0]]]
+      command = ssh -t gems-int-app0-no-portforwarding /bin/bash -ic taillogs
+      order = 0
+      parent = child2
+      profile = default
+      type = Terminal
+    [[[terminalLogIntApp1]]]
+      command = ssh -t gems-int-app1-no-portforwarding /bin/bash -ic taillogs
+      order = 1
+      parent = child2
+      profile = default
+      type = Terminal
+    [[[terminalLogIntFree]]]
+      command = ""
+      order = 1
+      parent = child1
+      profile = default
+      type = Terminal
+      last_active_window = True
+
+   [[prdlogs]]
+    [[[child0]]]
+      fullscreen = False
+      maximised = True
+      order = 0
+      parent = ""
+      position = 1965:387
+      size = 1875, 1025
+      title = /bin/bash
+      type = Window
+    [[[child1]]]
+      order = 0
+      parent = child0
+      position = 937
+      ratio = 0.91862745098
+      type = VPaned
+    [[[child2]]]
+      order = 0
+      parent = child1
+      position = 935
+      ratio = 0.5
+      type = HPaned
+    [[[terminalLogPrdApp0]]]
+      command = ssh -t gems-prod-app0-no-portforwarding /bin/bash -ic taillogs
+      order = 0
+      parent = child2
+      profile = default
+      type = Terminal
+    [[[terminalLogPrdApp1]]]
+      command = ssh -t gems-prod-app1-no-portforwarding /bin/bash -ic taillogs
+      order = 1
+      parent = child2
+      profile = default
+      type = Terminal
+    [[[terminalLogProdFree]]]
+      command = ""
+      order = 1
+      parent = child1
+      profile = default
+      type = Terminal
+      last_active_window = True     
+
+[plugins]
+[profiles]
+  [[default]]
+    cursor_color = "#aaaaaa"
