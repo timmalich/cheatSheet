@@ -142,6 +142,22 @@ kubectl --namespace mobile get deploy tiller-deploy -o yaml | grep gemsadm
 helm install --tiller-namespace=mobile --set image.tag=0.0.1 -f gems-mobile-ui/values.yaml -n mobile-prod ./gems-mobile-ui/
 ```
 
+## TODO 
+Add helm upgrade folder to git ignore
+1) install helm
+1.1) cd rapi
+2) helm plugin install https://github.com/app-registry/quay-helmv3-plugin
+3) helm quay pull reg-dhc.app.corpintra.net/i3/postgresql-helm:stable
+4) helm upgrade postgres i3_postgresql-helm_3.1.1-2020.4.27/postgresql-helm/ --install --kube-context=minikube --namespace rapi-local -f kubernetes/postgres/values.yaml
+4.1) Init script
+5) kubectl port-forward postgres-postgresql-helm-0 64000:64000 --address=0.0.0.0
+
+helm upgrade postgres i3_postgresql-helm_3.1.1-2020.4.27/postgresql-helm/ --install --kube-context={{ .KUBE_CONTEXT }} --namespace {{ .NAMESPACE }} -f kubernetes/postgres/values.yaml
+
+
+docker run -it -p 64000:64000 -e PGDBADMPW='rapi' -e PGDBADM='rapi' -e PGDATABASE='db' --entrypoint /bin/bash reg-dhc.app.corpintra.net/i3/postgresql:10.12-3-latest -c ./pg_start.sh
+
+
 ## kubernetes
 ```
  _          _                          _            
@@ -155,6 +171,10 @@ $$kubernetes
 ```bash
 kubectl apply -f "alertmanager-service.yaml","grafana-service.yaml","jhipster-registry-service.yaml","keycloak-service.yaml","myapp-app-service.yaml","myapp-mongodb-service.yaml","prometheus-service.yaml","alertmanager-deployment.yaml","alertmanager-claim0-persistentvolumeclaim.yaml","grafana-deployment.yaml","myapp-grafana-data-persistentvolumeclaim.yaml","jhipster-registry-deployment.yaml","jhipster-registry-claim0-persistentvolumeclaim.yaml","keycloak-deployment.yaml","keycloak-claim0-persistentvolumeclaim.yaml","myapp-app-deployment.yaml","myapp-mongodb-deployment.yaml","prometheus-deployment.yaml","prometheus-claim0-persistentvolumeclaim.yaml","myapp-prometheus-data-persistentvolumeclaim.yaml"    
 ```
+
+### exec
+# note the --
+k -n rapi-dev exec dev-postgresql-0 -c database -- tail -f -n 10 /srv/postgresql/volume/var/pg_logfile-4
 
 ### create a namespaces:
 ```
@@ -204,7 +224,7 @@ kubectl exec -it podName sh
 kubectl exec -it runtimeapi-6f4d9598f4-vfmp9 -c init-ds sh
 
 # show pod logs
-kkubectl logs -f runtimeapi-app-0
+kubectl logs -f runtimeapi-app-0
 # show pod logs of init container (after -c):
 kubectl logs runtimeapi-6f4d9598f4-vfmp9 -c init-ds
 
@@ -221,13 +241,16 @@ kubectl --tail=20 -nmonitoring logs -f $(kubectl -nmonitoring get pods --no-head
 
 ### networking
 ```
-# portfowarding from container to localhost: (first port is for your local host)
-kubectl port-forward runtimeapi-mongodb-0 9999:27017
+# expose to host
+kubectl port-forward dev-postgresql-0 --address=0.0.0.0 64001:64000
 
-# portforward mongo
-kubectl port-forward mongors-0 27000:27017 &
-kubectl port-forward mongors-1 27001:27017 &
-kubectl port-forward mongors-1 27002:27017 &
+# portfowarding from container to localhost: (first port is for your local host)
+kubectl port-forward dev-postgresql-0 64001:64000
+
+# tcpdump all http requests
+tcpdump -i any -A -vv -s 0 | grep -e "Host: "
+
+
 ```
 
 ### Install Script Kustomize
@@ -286,6 +309,17 @@ kubectl get secrets
 kubectl describe secrets my-secret
 ```
 
+### get kubernets host / cluster ip:
+```bash
+kubectl get svc -n default
+```
+
+### workaround for local rabbitmq dns issue:
+```bash
+clusterIP=$(kubectl get svc -n default -o jsonpath="{.items[0].spec.clusterIP}")
+sed -i "s/cluster_formation.k8s.host = kubernetes.default.svc.cluster.local/cluster_formation.k8s.host = ${clusterIP}/g" kubernetes/rabbitmq/base/configuration.yaml
+```
+
 ## Docker
 ```bash
 $$$$$$$\                      $$\                           
@@ -335,6 +369,32 @@ docker push dockerhubURL/tmalich/brm:init
 docker system prune -a
 ```
 
+## Postgres
+$$postgresql
+### logging
+Log connections on integration test db:
+```bash
+docker exec -it postgres-inttest-64000 vi /srv/postgresql/volume/data/postgres/postgresql.conf
+# modify:
+# log_connections = on
+docker exec -it postgres-inttest-64000 /srv/postgresql/product/11.7/bin/pg_ctl -D /srv/postgresql/volume/data/postgres reload
+```
+
+Log statement on kubernetes db:
+```bash
+# modify: 
+# log_statement = 'all'                 # none, ddl, mod, all
+k exec -it dev-postgresql-0 -- vi /srv/postgresql/volume/data/postgres/postgresql.conf
+k exec -it dev-postgresql-1 -- vi /srv/postgresql/volume/data/postgres/postgresql.conf
+k exec -it dev-postgresql-2 -- vi /srv/postgresql/volume/data/postgres/postgresql.conf
+
+k exec -it dev-postgresql-0 -- /srv/postgresql/product/11.7/bin/pg_ctl -D /srv/postgresql/volume/data/postgres reload
+k exec -it dev-postgresql-1 -- /srv/postgresql/product/11.7/bin/pg_ctl -D /srv/postgresql/volume/data/postgres reload
+k exec -it dev-postgresql-2 -- /srv/postgresql/product/11.7/bin/pg_ctl -D /srv/postgresql/volume/data/postgres reload
+
+```
+
+
 ## DB2
 ```
 
@@ -348,6 +408,104 @@ $$ |  $$ |$$ |  $$ |$$ |
  \_______|\_______/ \________|
 $$db2
 ```
+### Put Online Backup into container
+Backups are here: /srv/db2/home/zc9xap01/DB-BACKUPS_DAILY/cron_backup/BACKUP_INDV/zc9xap01_ZC9XAP01/
+There should only be files ending with .001. Each is a complete backup, so you only need to copy one!
+```bash
+# Optional: tar and gzip it. Afterwards it's usually half the size
+tar -zcvf /dbshare/prdbckup20200616.tar.gz /srv/db2/home/zc9xap01/DB-BACKUPS_DAILY/cron_backup/BACKUP_INDV/zc9xap01_ZC9XAP01/ZC9XAP01.0.zc9xap01.DBPART000.TIMESTAMP.*
+# Also Optional but highly recommended. Copy it to opsserver first (thanks to direct network communication it will copy with ~100Mbit/s)
+ssh opsserver: 
+   scp gems-prod-db:/dbshare/prdbckup20200616.tar.gz /srv/tmp
+# on client again (4 times faster in VPN. thanks to susshi gateway it only copies w/ ~500kb):
+mkdir ~/backupZc9xap01/
+scp opsserver:/srv/tmp/prdbckup20200616.tar.gz ~/backupZc9xap01/
+# untar
+tar -zxvf ~/backupZc9xap01/prdbckup20200616.tar.gz
+# move to volume mount, so it can be read from container
+mv ~/backupZc9xap01/srv ~/git-repos/gems/5100_Workspace/rait_db_scripts/
+# stop gems
+docker stop gems-was
+
+#### go into container
+docker exec -it gems-db2-ui bash
+cd /db_scripts/srv/db2/home/zc9xap01/DB-BACKUPS_DAILY/cron_backup/BACKUP_INDV/zc9xap01_ZC9XAP01
+
+### it's a bit more complicated here, because we want to transfer the data from xap01 int xat01
+# create folder structure
+db2 restore db zc9xap01 taken at TIMESTAMP_FROM_FILENAME into zc9xat01 redirect generate script /tmp/restore_zc9xap01_to_zc9xat01.sql
+vi /tmp/restore_zc9xap01_to_zc9xat01.sql
+---> set update command to:
+UPDATE COMMAND OPTIONS USING S ON Z ON /tmp/restoring.out V ON;
+---> replace every zc9xap01 with zc9xat01 DESPISE those four lines:
+     RESTORE DATABASE ZC9XAP01
+     FROM '/db_scripts/srv/db2/home/zc9xap01/DB-BACKUPS_DAILY/cron_backup/BACKUP_INDV/zc9xap01_ZC9XAP01'
+     RESTORE DATABASE ZC9XAP01 CONTINUE;
+---> uncomment and set these lines:
+     LOGTARGET '/tmp/logs_zc9xat01'
+     NEWLOGPATH '/srv/db2/onredop/ZC9XAT01/'
+
+     SET STOGROUP PATHS FOR IBMSTOGROUP
+     ON '/srv/db2/data1/ZC9XAT01'
+     ;
+
+     SET STOGROUP PATHS FOR SGDATA1
+     ON '/srv/db2/data1/ZC9XAT01'
+     ;
+
+     SET STOGROUP PATHS FOR SGTEMP1
+     ON '/srv/db2/temp1/ZC9XAT01'
+     ;
+
+---> add this line to the end:
+    rollforward database zc9xat01 to end of logs and complete overflow log path ('/tmp/logs_zc9xat01') noretrieve;
+
+# create folder structure
+mkdir -p /srv/db2/data1/ZC9XAT01
+mkdir -p /srv/db2/temp1/ZC9XAT01
+mkdir -p /srv/db2/var/ZC9XAT01
+mkdir -p /srv/db2/onredop/ZC9XAT01
+mkdir -p /srv/db2/onredom/ZC9XAT01
+mkdir -p /srv/db2/offredo/ZC9XAT01
+mkdir -p /srv/db2/data1/ZC9XAP01/system1/
+mkdir -p /srv/db2/data1/ZC9XAP01/data1/
+mkdir -p /srv/db2/temp1/ZC9XAP01/temp1sms/
+chmod -R 777 /srv/db2/
+mkdir /tmp/logs_zc9xat01
+chmod 777 /tmp/logs_zc9xat01
+### end of db transeration
+
+# switch to instance owner
+su db2admin
+# optional: verify backup
+db2ckbkp -H ZC9XAP01.0.zc9xap01.DBPART000.20200616010007.001 
+# ^^^ this output is actually OK
+# The proper image file name would be:
+# ZC9XAP01.0.zc9xap01.DBPART000.20200616010007.001
+
+# stop and drop the existing datebase
+db2 force application all; db2 drop db zc9xat01
+# grant admin rights due to transferation
+db2stop
+db2set DB2_RESTORE_GRANT_ADMIN_AUTHORITIES=YES
+db2start
+
+# run the restore
+db2 -tf /tmp/restore_zc9xap01_to_zc9xat01.sql
+# you can monitore the status in a different shell with:
+watch db2 list utilities show detail
+
+# check if it was successful:
+db2 connect to zc9xat01
+db2 list tablespaces
+# reactivate gemssadm user
+db2 -tf /db_scripts/gems-db-init/21_security_bootstrap_superuser.db2.sql
+db2 terminate
+#### END OF CONTAINER
+
+docker start gems-was
+```
+
 
 ### examples
 ```
@@ -799,6 +957,13 @@ docker run -d --name sonar-postgresql -e ALLOW_EMPTY_PASSWORD=yes -e POSTGRESQL_
 docker run -d --name sonarqube -p 80:80 -e ALLOW_EMPTY_PASSWORD=yes -e SONARQUBE_DATABASE_USER=admin -e SONARQUBE_DATABASE_PASSWORD=XXXXXXX -e SONARQUBE_DATABASE_NAME=sonar_postgresql -e=POSTGRESQL_HOST=sonar-postgresql --net sonar --volume  /var/lib/sonar/sonar_data:/bitnami DOCKERHUBHOST/gems/sonarqube 
 ```
 
+### jq
+```jq
+# filter jq json output by value:
+curl "http://localhost:8080/api/v1/users/USER15/authorizations" -H "x-client-id: local_dummy_client" | jq -c '.[] | select(.applicationId == "APPID1")'
+curl "http://localhost:8080/api/v1/users/USER15/authorizations" -H "x-client-id: local_dummy_client" | jq '.[] | select(.applicationId == "APPID1")'
+```
+
 ### trouble shooting in running sonarqube container:
 ``` 
 cat /opt/bitnami/sonarqube/logs/web.log
@@ -909,7 +1074,7 @@ Wants=network-online.target
 After=network-online.target
 
 [Service]
-# NOTE: on SLES you may have to enable the service when using this setting
+# NOTE: on SLES you may have to switch the user or use --user to enable the service when using this setting
 User=gemsops
 Group=users
 Type=simple
@@ -919,6 +1084,20 @@ ExecStart=/usr/bin/stdbuf -oL /home/gemsops/ansible-gems/monitoring/simple_rest_
 
 [Install]
 WantedBy=multi-user.target
+```
+
+### File removed but still no space left on device 
+```bash
+lsof | grep deleted
+# exmpale output:
+#socket_ma 21728 21732      td-agent   35w      REG               0,48 29811917371       1025 /var/log/td-agent/td-agent.log (deleted)
+#          ^ PID                                                                              ^ file path
+kill -9 PID
+```
+
+### find parent pid / service that restarts a process
+```bash
+ps -f CHILD_PID
 ```
 
 ### follow a single service:
@@ -1114,7 +1293,7 @@ xhr = new XMLHttpRequest(); xhr.open("GET", "https://URL"); xhr.send();
 ```
 "C:\Windows\System32\rundll32.exe" dsquery.dll,OpenQueryWindow
 ```
-### find ad group permission for user
+### find add group permission for user
 net user /domain tmalich
 
 

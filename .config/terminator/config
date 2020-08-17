@@ -1,7 +1,14 @@
 [global_config]
-  enabled_plugins = CustomCommandsMenu, InactivityWatch, ActivityWatch, LaunchpadCodeURLHandler, APTURLHandler, Logger, LaunchpadBugURLHandler
   geometry_hinting = True
+  title_receive_bg_color = "#e2f0d3"
+  enabled_plugins = CustomCommandsMenu, InactivityWatch, ActivityWatch, LaunchpadCodeURLHandler, APTURLHandler, Logger, LaunchpadBugURLHandler
 [keybindings]
+[profiles]
+  [[default]]
+    cursor_color = "#aaaaaa"
+    scrollback_lines = 50000
+    palette = "#000000:#aa0000:#00aa00:#aa5500:#0000aa:#aa00aa:#00aaaa:#aaaaaa:#555555:#ff5555:#55ff55:#ffff55:#5555ff:#ff55ff:#55ffff:#ffffff"
+    bold_is_bright = True
 [layouts]
   [[default]]
     [[[child1]]]
@@ -48,12 +55,11 @@
       type = Terminal
     [[[terminalLogDevFree]]]
       command = ""
+      last_active_window = True
       order = 1
       parent = child1
       profile = default
       type = Terminal
-      last_active_window = True
-
   [[intlogs]]
     [[[child0]]]
       fullscreen = False
@@ -90,13 +96,12 @@
       type = Terminal
     [[[terminalLogIntFree]]]
       command = ""
+      last_active_window = True
       order = 1
       parent = child1
       profile = default
       type = Terminal
-      last_active_window = True
-
-   [[prdlogs]]
+  [[prdlogs]]
     [[[child0]]]
       fullscreen = False
       maximised = True
@@ -132,13 +137,9 @@
       type = Terminal
     [[[terminalLogProdFree]]]
       command = ""
+      last_active_window = True
       order = 1
       parent = child1
       profile = default
       type = Terminal
-      last_active_window = True     
-
 [plugins]
-[profiles]
-  [[default]]
-    cursor_color = "#aaaaaa"
