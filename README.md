@@ -56,6 +56,14 @@ ssh-add -L
 # solution check that there are NO WRONG KEY FILES in .ssh. Even if you don't use it or has a crazy name 
 ```
 
+### resume scp file copy
+```bash
+# assume `scp gemsops:/data/ZC9XAP01.0.zc9xap01.DBPART000.20200908010006.001 ~/` was startet and broke
+# use rsync to resume
+rsync --partial -rsh=ssh gemsops:/data/ZC9XAP01.0.zc9xap01.DBPART000.20200908010006.001 ~/
+
+```
+
 ## Java / JVM
 ```
    _                       __      __      __ _   __
@@ -250,7 +258,8 @@ kubectl port-forward dev-postgresql-0 64001:64000
 # tcpdump all http requests
 tcpdump -i any -A -vv -s 0 | grep -e "Host: "
 
-
+# find container port:
+kubectl get pods -n logging gemslogging-kibana-7f67dbbcdd-7dqqk --template='{{(index (index .spec.containers 0).ports 0).containerPort}}{{"\n"}}'
 ```
 
 ### Install Script Kustomize
@@ -382,9 +391,17 @@ docker exec -it postgres-inttest-64000 /srv/postgresql/product/11.7/bin/pg_ctl -
 
 Log statement on kubernetes db:
 ```bash
+# try by sql and run an master postgres:
+k exec -it dev-postgresql-0 -- bash -c ". ~/.bashrc; psql -c \"alter database db set log_min_duration_statement = '0';\""
+k exec -it dev-postgresql-0 -- bash -c ". ~/.bashrc; psql -c \"alter database db set log_statement = 'all';\""
+
+# deactivate
+k exec -it dev-postgresql-0 -- bash -c ". ~/.bashrc; psql -c \"alter database db set log_statement = 'none';\""
+k exec -it dev-postgresql-0 -- bash -c ". ~/.bashrc; psql -c \"alter database db set log_min_duration_statement = '-1';\""
+
 # modify: 
 # log_statement = 'all'                 # none, ddl, mod, all
-k exec -it dev-postgresql-0 -- vi /srv/postgresql/volume/data/postgres/postgresql.conf
+# log_min_duration_statement = '0' # -1 none, 0 all
 k exec -it dev-postgresql-1 -- vi /srv/postgresql/volume/data/postgres/postgresql.conf
 k exec -it dev-postgresql-2 -- vi /srv/postgresql/volume/data/postgres/postgresql.conf
 
@@ -958,10 +975,17 @@ docker run -d --name sonarqube -p 80:80 -e ALLOW_EMPTY_PASSWORD=yes -e SONARQUBE
 ```
 
 ### jq
+$$jq
 ```jq
 # filter jq json output by value:
 curl "http://localhost:8080/api/v1/users/USER15/authorizations" -H "x-client-id: local_dummy_client" | jq -c '.[] | select(.applicationId == "APPID1")'
 curl "http://localhost:8080/api/v1/users/USER15/authorizations" -H "x-client-id: local_dummy_client" | jq '.[] | select(.applicationId == "APPID1")'
+
+# find duplicate authorizations
+jq '.authorizations | sort_by(.applicationId, .name) | group_by(.) | map(select(length>1))' corrputUser.json
+
+# sort by application id and name
+jq '.authorizations | sort_by(.applicationId, .name)' corrputUser.json
 ```
 
 ### trouble shooting in running sonarqube container:
@@ -991,6 +1015,9 @@ https://host/.well-known/openid-configuration
 |_____|_|_| |_|\__,_/_/\_\ 
 $$linux
 ```
+### replace string everywhere except for repo folders
+grep -lRi oldtext . --exclude-dir=.git | xargs sed -i 's/oldtext/newtext/gI'
+
 
 ### open port test connection (BSD version)
 ```
@@ -1038,7 +1065,7 @@ resize2fs /dev/$disk$partitionNumber
 ### list disk usage for a folder
 du -sh /*
 
-### LVM resize
+### LVM easy increase
 # resize volume: -L -> new size
 lvextend -L20G /dev/mapper/vg00-lvvar
 # determine file system type:
@@ -1047,6 +1074,37 @@ blkid | grep vg00-lvvar
 resize2fs /dev/mapper/vg00-lvvar
 # for xfs systems use:
 xfs_growfs /dev/mapper/vg00-lvvar
+
+### LV SHRINK AND RESIZE AND CREATE ##########################
+# show volume groups and availbe space (available space is listed under PFree)
+pvs 
+# df -hT. -T shows fs type an volumes
+# Copy value from left row
+df -hT
+# CRITICAL REDUCE SIZE OF LV
+# asks if unmount is required. reduces the lv space by 80GB
+lvresize -r -L-80G /dev/mapper/vgdata-lvsrv_db2_backup
+# if unmount is required, check if a process uses smth. in the filesystem
+lsof +D /srv/db2/backup/
+# create lv with size 10G
+lvcreate -n lvsrv_postgresql -L 10G vgdata
+# create lv which uses 100% of available free space
+lvcreate -n lvsrv_postgresql_data -l 100%FREE vgdata 
+# create file sytem (-L is just a label)
+mkfs.ext4 -L postgres /dev/vgdata/lvsrv_postgresql
+mkfs.ext4 -L postgres_data /dev/vgdata/lvsrv_postgresql_data
+# add to fstab:
+vi /etc/fstab
+######
+/dev/vgdata/lvsrv_postgresql /srv/postgresql ext4 defaults 1 2
+/dev/vgdata/lvsrv_postgresql_data /srv/postgresql/data ext4 defaults 1 2
+######
+# create folders and mount them
+mkdir -p 0 /srv/postgresql
+mkdir -p 0 /srv/postgresql/data
+mount /srv/postgresql/data/
+mount /srv/postgresql/
+### LV RESIZE END ##########################
 
 # ssh reverse proxy
 ssh -R 9081:localhost:9081 -R 9043:localhost:443 tmalich@gemscloud.northeurope.cloudapp.azure.com
@@ -1086,7 +1144,7 @@ ExecStart=/usr/bin/stdbuf -oL /home/gemsops/ansible-gems/monitoring/simple_rest_
 WantedBy=multi-user.target
 ```
 
-### File removed but still no space left on device 
+### File removed (rm) but still no space left on device 
 ```bash
 lsof | grep deleted
 # exmpale output:
@@ -1298,3 +1356,28 @@ net user /domain tmalich
 
 
 
+
+                 _                      
+ _ __   ___  ___| |_ __ _ _ __ ___  ___ 
+| '_ \ / _ \/ __| __/ _` | '__/ _ \/ __|
+| |_) | (_) \__ \ || (_| | | |  __/\__ \
+| .__/ \___/|___/\__\__, |_|  \___||___/
+|_|                   _|_|
+$$postgres
+```
+show databases:
+\list
+
+show roles:
+\du
+
+show schemas:
+\dn
+
+show tables all schemas:
+\dt *.*
+
+show tables of one schema
+\dt gemsschema.*
+
+```

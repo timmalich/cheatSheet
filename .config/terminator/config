@@ -142,4 +142,45 @@
       parent = child1
       profile = default
       type = Terminal
+  [[pglogs]]
+    [[[child0]]]
+      fullscreen = False
+      maximised = True
+      order = 0
+      parent = ""
+      position = 1965:387
+      size = 1875, 1025
+      title = /bin/bash
+      type = Window
+    [[[child1]]]
+      order = 0
+      parent = child0
+      position = 937
+      ratio = 0.5
+      type = VPaned
+    [[[child2]]]
+      order = 0
+      parent = child1
+      position = 935
+      ratio = 1
+      type = VPaned
+    [[[terminalLogPrdApp0]]]
+      command = "kubectl logs --tail=1 -f dev-postgresql-0 database | grep -i -E 'leader|TMALICH'"
+      order = 0
+      parent = child2
+      profile = default
+      type = Terminal
+    [[[terminalLogPrdApp1]]]
+      command = "kubectl logs --tail=1 -f dev-postgresql-1 database | grep -i -E 'leader|TMALIHC'"
+      order = 1
+      parent = child2
+      profile = default
+      type = Terminal
+    [[[terminalLogProdFree]]]
+      command = "kubectl logs --tail=1 -f dev-postgresql-2 database | grep -i -E 'leader|TMALICH'"
+      last_active_window = True
+      order = 1
+      parent = child1
+      profile = default
+      type = Terminal
 [plugins]
