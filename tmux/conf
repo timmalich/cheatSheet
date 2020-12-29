@@ -1,0 +1,12 @@
+set-option -g mouse-select-pane on
+setw -g monitor-activity on
+set -g visual-activity on
+bind -n M-Left select-pane -L
+bind -n M-Right select-pane -R
+bind -n M-Up select-pane -U
+bind -n M-Down select-pane -D
+
+bind D source-file ~/.tmux/dev
+bind l source-file ~/.tmux/log
+
+

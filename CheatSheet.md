@@ -380,7 +380,7 @@ docker system prune -a
 
 ## Postgres
 $$postgresql
-### logging
+### logging k8s
 Log connections on integration test db:
 ```bash
 docker exec -it postgres-inttest-64000 vi /srv/postgresql/volume/data/postgres/postgresql.conf
@@ -408,6 +408,50 @@ k exec -it dev-postgresql-2 -- vi /srv/postgresql/volume/data/postgres/postgresq
 k exec -it dev-postgresql-0 -- /srv/postgresql/product/11.7/bin/pg_ctl -D /srv/postgresql/volume/data/postgres reload
 k exec -it dev-postgresql-1 -- /srv/postgresql/product/11.7/bin/pg_ctl -D /srv/postgresql/volume/data/postgres reload
 k exec -it dev-postgresql-2 -- /srv/postgresql/product/11.7/bin/pg_ctl -D /srv/postgresql/volume/data/postgres reload
+
+```
+
+### general
+```
+show databases:
+\list
+
+show roles:
+\du
+
+show schemas:
+\dn
+
+show tables all schemas:
+\dt *.*
+
+show tables of one schema
+\dt gemsschema.*
+
+
+
+# watch long runnning queries:
+# NOTE IN CASE CONNECTION POOLING IS ACTIVE, THE STATE SHOULD BE active and not idle. When state=idle this table still shows the last query. This can be missleading.
+watch "psql -c \"SELECT pid, now() - pg_stat_activity.query_start AS duration, query, state FROM pg_stat_activity WHERE (now() - pg_stat_activity.query_start) > interval '5 minutes' and state != 'idle'; \""
+
+# tail log for queries with parameters (requries e.g. log_statement = 'all')
+alias tailpglogs_for_statementswithparameters="tail -f /srv/postgresql/var/pggemsdev/log/postgresql-$(date '+%Y-%m-%d').log | grep -A1 --line-buffered 'LOG:  execute'"
+
+
+# logs are here:
+less /srv/postgresql/var/pggemsdev/log/
+
+# loop over every single row and exec update:
+DO $$
+DECLARE rec RECORD;
+BEGIN
+    FOR rec IN (SELECT user_id FROM gemsschema.user2drd) LOOP
+            -- raise will print console output
+            --RAISE INFO '%', rec;
+            UPDATE gemsschema.user2drd SET user_dirty = 0 where user_id = rec.user_id;
+    END LOOP;
+END;
+$$ LANGUAGE PLPGSQL;
 
 ```
 
@@ -719,6 +763,9 @@ ldapwhoami -D "uid=GEMSXXX" -h HOST -p 3893 -w 'PLAINPASSWORD'
 ldapwhoami -D "uid=DWIWXXX" -h HOST -p 3893 -w 'PLAINPASSWORD'
 ldapwhoami -D "cn=GEMS,XXX" -h CORPDIRHOST -p 3893 -w 'PLAINPASSWORD'
 ldapwhoami -D "cn=XXXX" -h HOST -p 3893 -w 'PLAINPASSWORD'
+
+# find a user by cn:
+ldapsearch -H ldaps://HOST:PORT  -x -D "BINDUSER" -W -b "uid=${USER_ID},ou=employees,ou=people,o=iapdir"
 ```
 
 ## WAS
@@ -805,21 +852,34 @@ ${PROFILE_HOME}/config/cells/${CELL}/applications/dwiw.ear/deployments/dwiw/META
 ### decode / decrypt xored passwords from security.xml
 ```javascript
 // Copy the password and replace "TheSuperSecurePassword" with the copied one
-var decode = function(s) {
+let decode = function(encodedPass) {
   // strip {xor} if existant
-  if (s.toUpperCase().substring(0,5)=="{XOR}") {
-    s = s.substr(5);
+  if (encodedPass.toUpperCase().substring(0,5)=="{XOR}") {
+    encodedPass = encodedPass.substr(5);
   }
-  //s = decodeBase64( s );
-  s=atob(s);
-  // XOR each char to ASCII('_') (underscore is 95)
-  var r = '';
-  for (i=0; i< s.length; i++) {
-    r += String.fromCharCode(s.charCodeAt(i) ^ 95 );
+  
+  base64DecodedPass=atob(encodedPass);
+  let decoded = '';
+  for (i=0; i< base64DecodedPass.length; i++) {
+    decoded += String.fromCharCode(base64DecodedPass.charCodeAt(i) ^ 95 ); // 95 = ASCII _
   }
-  console.log(r); 
+  console.log(decoded); 
+  return decoded;
 };
-decode("TheSuperSecurePassword") 
+
+function encode(let pass) {
+  var xored = '';
+  for (i=0; i< pass.length; i++) {
+    xored += String.fromCharCode(pass.charCodeAt(i) ^ 95 ); // 95 = ASCII _
+  
+  }  
+  encodedBase64 = atob(xored);
+  encoded = "{xor}" + encodedBase64;
+  console.log(encoded);
+  return encoded;
+}
+
+decode(encode('TheSuperSecuredPassword'));
 ```
 
 
@@ -1356,28 +1416,70 @@ net user /domain tmalich
 
 
 
+# temp section:
+### install local setup
+### was on GEMSVM:
+cp ~/vms/WebSphere_PAI_6.0.2_V21_SNAPSHOT.20201118.tar.gz ~/git-repos/gems/
+ssh root@gems
+gems down
+rm -rf /opt/IBM/WebSphere/
+tar xf /workspace/WebSphere_PAI_6.0.2_V21_SNAPSHOT.20201118.tar.gz -C /opt/IBM/
+gems up
+gems deploy
+docker volume inspect -> /usr/local/bin service
+### add to /etc/hosts
+127.0.0.1	localhost gems gems-ldap gems-db2-ui gems-rabbitmq gems-smtp gems-postgres
 
-                 _                      
- _ __   ___  ___| |_ __ _ _ __ ___  ___ 
-| '_ \ / _ \/ __| __/ _` | '__/ _ \/ __|
-| |_) | (_) \__ \ || (_| | | |  __/\__ \
-| .__/ \___/|___/\__\__, |_|  \___||___/
-|_|                   _|_|
-$$postgres
-```
-show databases:
-\list
 
-show roles:
-\du
 
-show schemas:
-\dn
+### MIGRATION ONE TIME STEPS:
 
-show tables all schemas:
-\dt *.*
+TODO
+  CART
+  https://s415vm1859.detss.corpintra.net:8443/jenkins/job/GEMS/view/GEMS%20CI/job/GEMS%20CI/job/Revert%20WAS%20config%20and%20redeploy%20DEV/configure -> Build periodically:   H 19 * * 0-5
 
-show tables of one schema
-\dt gemsschema.*
+Für Monitoring: File System Usage Graphen + Queue als Linie
 
-```
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!DO NOT DEPLOY FROM GEMS HOTFIX FROM MASTER!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+
+
+
+
+
+# MIGRATION DAY:
+1)
+setup maint page via jenkins
+
+2)
+Before migration starts stop appservers ON BOTH APP SERVERS!
+ebisctl.gems stop
+
+3)
+After migration is done: 
+Int: /home/cdteam/compare_table_view_count_pg_db2.sh pggemsint zc9xai01
+Prod: /home/cdteam/compare_table_view_count_pg_db2.sh pggemsprod zc9xap01
+
+4)
+Migratoin was valid, next start dmgr and node to deploy application:
+on app0:
+ebisctl.gems start dmgr
+on app0 und app1:
+ebisctl.gems start node
+
+5)
+Finally: 
+Run ansible deploy job
+revert was config and redeploy
+deploy release info. -> fragt nach file location
+
+
+
+Role role = assertRole(ROLE_MD1).getEntity();
+        RoleModel roleModel = new RoleModel(role, null);
+        //FacesContext facesContextMock = mock(FacesContext.class);
+
