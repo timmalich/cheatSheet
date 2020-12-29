@@ -1,2 +1,3 @@
 #pattern  filter=crypt diff=crypt
 .bashrc filter=crypt diff=crypt
+securedCheatsheet.md filter=crypt diff=crypt
