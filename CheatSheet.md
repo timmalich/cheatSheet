@@ -25,7 +25,7 @@ HTTPS_PROXY="http://user:pass@host:port"
  ___) |__) |  _  |
 |____/____/|_| |_|
 $$ssh
-```
+  ```
 ### virtual terminals with screen
 ```bash
 # 1. enter screen 
@@ -60,7 +60,7 @@ ssh-add -L
 ```bash
 # assume `scp gemsops:/data/ZC9XAP01.0.zc9xap01.DBPART000.20200908010006.001 ~/` was startet and broke
 # use rsync to resume
-rsync --partial -rsh=ssh gemsops:/data/ZC9XAP01.0.zc9xap01.DBPART000.20200908010006.001 ~/
+rsync --partial -rsh=ssh gemsops:/data/gems/postgresql/archive/pggemsprod/daily/pg_sedcbgem002pd0_PGBASEBACKUP_2021-01-19.Tuesday/ ~/backups/
 
 ```
 
@@ -380,6 +380,19 @@ docker system prune -a
 
 ## Postgres
 $$postgresql
+### prod backup doesn't start due to leck of memory:
+in host:
+mount -o remount,size=4g -t tmpfs /var/lib/docker/containers/CONTAINERID/mounts/shm/
+
+in container: 
+vi /srv/postgresql/data/pggemsprod/postgresql_gems.conf
+set shared_buffers = 8214MB
+
+pg_ctl -D /srv/postgresql/data/pggemsprod/ start
+
+and security bootstrap with local credentials as shown in 
+/home/tmalich/git-repos/gems/5200_Application_Configuration/local-dev-environment/postgresql/init.sh
+
 ### logging k8s
 Log connections on integration test db:
 ```bash
@@ -1078,7 +1091,23 @@ $$linux
 ### replace string everywhere except for repo folders
 grep -lRi oldtext . --exclude-dir=.git | xargs sed -i 's/oldtext/newtext/gI'
 
+### stop and wait for process (in case killall -w isn't available)
+```
+function stopAndWaitForProcess() {
+  echo "Stopping all $1 processes"
+  rc=0
+  while [ $rc -eq 0 ]; do
+    pkill -9 "$1"
+    echo -n "."
+    sleep 1s
+    pgrep "$1" > /dev/null
+    rc=$?
+  done
+  echo
+  echo "Stopped all $1 processes"
+}
 
+```
 ### open port test connection (BSD version)
 ```
 nc -v -l 53.31.74.151 443
@@ -1143,9 +1172,9 @@ pvs
 df -hT
 # CRITICAL REDUCE SIZE OF LV
 # asks if unmount is required. reduces the lv space by 80GB
-lvresize -r -L-80G /dev/mapper/vgdata-lvsrv_db2_backup
-# if unmount is required, check if a process uses smth. in the filesystem
-lsof +D /srv/db2/backup/
+# if unmount is requried check if a process uses smth. in the filesystem with: 
+# lsof +D /srv/db2/backup/
+lvresize -r -L-250G /dev/mapper/vgdata-lvsrv_db2_temp1
 # create lv with size 10G
 lvcreate -n lvsrv_postgresql -L 10G vgdata
 # create lv which uses 100% of available free space
@@ -1429,57 +1458,3 @@ gems deploy
 docker volume inspect -> /usr/local/bin service
 ### add to /etc/hosts
 127.0.0.1	localhost gems gems-ldap gems-db2-ui gems-rabbitmq gems-smtp gems-postgres
-
-
-
-### MIGRATION ONE TIME STEPS:
-
-TODO
-  CART
-  https://s415vm1859.detss.corpintra.net:8443/jenkins/job/GEMS/view/GEMS%20CI/job/GEMS%20CI/job/Revert%20WAS%20config%20and%20redeploy%20DEV/configure -> Build periodically:   H 19 * * 0-5
-
-Für Monitoring: File System Usage Graphen + Queue als Linie
-
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!DO NOT DEPLOY FROM GEMS HOTFIX FROM MASTER!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-
-
-
-
-
-
-# MIGRATION DAY:
-1)
-setup maint page via jenkins
-
-2)
-Before migration starts stop appservers ON BOTH APP SERVERS!
-ebisctl.gems stop
-
-3)
-After migration is done: 
-Int: /home/cdteam/compare_table_view_count_pg_db2.sh pggemsint zc9xai01
-Prod: /home/cdteam/compare_table_view_count_pg_db2.sh pggemsprod zc9xap01
-
-4)
-Migratoin was valid, next start dmgr and node to deploy application:
-on app0:
-ebisctl.gems start dmgr
-on app0 und app1:
-ebisctl.gems start node
-
-5)
-Finally: 
-Run ansible deploy job
-revert was config and redeploy
-deploy release info. -> fragt nach file location
-
-
-
-Role role = assertRole(ROLE_MD1).getEntity();
-        RoleModel roleModel = new RoleModel(role, null);
-        //FacesContext facesContextMock = mock(FacesContext.class);
-
